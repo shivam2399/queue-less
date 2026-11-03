@@ -1,12 +1,14 @@
+const path = require('path');
 const { Sequelize } = require('sequelize');
 const env = require('./env');
 
 let sequelize;
 
 if (env.NODE_ENV === 'test' || env.DB_DIALECT === 'sqlite') {
+  const isTest = env.NODE_ENV === 'test';
   sequelize = new Sequelize({
     dialect: 'sqlite',
-    storage: ':memory:',
+    storage: isTest ? ':memory:' : path.join(__dirname, '../../dev.sqlite'),
     logging: false,
     define: {
       underscored: true,
