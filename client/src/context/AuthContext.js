@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { api } from '../lib/api';
+import { api, setCsrfToken } from '../lib/api';
 
 const AuthContext = createContext({
   user: null,
@@ -18,8 +18,11 @@ export function AuthProvider({ children }) {
 
   const fetchCurrentUser = async () => {
     try {
-      // Also request CSRF token cookie initialization on boot
-      await api.get('/auth/csrf').catch(() => {});
+      // Initialize CSRF token on boot
+      const csrfRes = await api.get('/auth/csrf').catch(() => null);
+      if (csrfRes?.data?.csrfToken) {
+        setCsrfToken(csrfRes.data.csrfToken);
+      }
       const res = await api.get('/auth/me');
       setUser(res.data.user);
     } catch (err) {

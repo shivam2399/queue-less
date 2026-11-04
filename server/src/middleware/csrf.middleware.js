@@ -11,11 +11,12 @@ function csrfProtection(req, res, next) {
   const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
   
   // Set CSRF cookie if not present
-  if (!req.cookies || !req.cookies.csrf_token) {
-    const token = generateCsrfToken();
+  let token = req.cookies && req.cookies.csrf_token;
+  if (!token) {
+    token = generateCsrfToken();
     const isProduction = env.NODE_ENV === 'production';
     res.cookie('csrf_token', token, {
-      httpOnly: false, // Must be readable by client JS to send in X-CSRF-Token header
+      httpOnly: false, // Must be readable by client JS or returned in header
       secure: isProduction,
       sameSite: isProduction ? 'None' : 'Lax',
       path: '/'
@@ -24,6 +25,9 @@ function csrfProtection(req, res, next) {
     if (!req.cookies) req.cookies = {};
     req.cookies.csrf_token = token;
   }
+
+  // Always expose X-CSRF-Token on response headers for cross-origin SPAs
+  res.setHeader('X-CSRF-Token', token);
 
   if (safeMethods.includes(req.method)) {
     return next();
@@ -34,13 +38,17 @@ function csrfProtection(req, res, next) {
     return next();
   }
 
+  // Always exempt login and register endpoints from CSRF verification
+  if (req.path.endsWith('/login') || req.path.endsWith('/register')) {
+    return next();
+  }
+
   // If request is authenticated via Bearer token in Authorization header, CSRF is not required
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
     return next();
   }
 
-  // If request has no cookie session, it is unauthenticated or public (e.g., initial login/register)
-  // For login and register, we still allow them, or verify if CSRF token header is provided
+  // If request has no cookie session, it is unauthenticated (handled by auth middleware)
   if (!req.cookies || !req.cookies.token) {
     return next();
   }

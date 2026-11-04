@@ -19,7 +19,8 @@ class AuthController {
       const { user, token } = await authService.register(req.body);
       res.cookie('token', token, getCookieOptions());
       
-      return sendSuccess(res, { user, token }, 'Registration successful', 201);
+      const csrfToken = req.cookies?.csrf_token;
+      return sendSuccess(res, { user, token, csrfToken }, 'Registration successful', 201);
     } catch (error) {
       next(error);
     }
@@ -30,7 +31,8 @@ class AuthController {
       const { user, token } = await authService.login(req.body);
       res.cookie('token', token, getCookieOptions());
 
-      return sendSuccess(res, { user, token }, 'Login successful', 200);
+      const csrfToken = req.cookies?.csrf_token;
+      return sendSuccess(res, { user, token, csrfToken }, 'Login successful', 200);
     } catch (error) {
       next(error);
     }
